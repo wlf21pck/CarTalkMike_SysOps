@@ -1,0 +1,150 @@
+[
+    {
+        "ParameterKey": "AutoScalingNotificationEmail",
+        "ParameterValue": "foo@example.com"
+    },
+    {
+        "ParameterKey": "AvailabilityZones",
+        "ParameterValue": "$[taskcat_getaz_2]"
+    },
+    {
+        "ParameterKey": "BastionAMIOS",
+        "ParameterValue": "Amazon-Linux-HVM"
+    },
+    {
+        "ParameterKey": "BastionInstanceType",
+        "ParameterValue": "t2.micro"
+    },
+    {
+        "ParameterKey": "DBAutoMinorVersionUpgrade",
+        "ParameterValue": "true"
+    },
+    {
+        "ParameterKey": "DBBackupRetentionPeriod",
+        "ParameterValue": "7"
+    },
+    {
+        "ParameterKey": "DBInstanceClass",
+        "ParameterValue": "db.t2.small"
+    },
+    {
+        "ParameterKey": "DBMasterUserPassword",
+        "ParameterValue": "$[alfred_genpass_10]"
+    },
+    {
+        "ParameterKey": "DBMasterUsername",
+        "ParameterValue": "dbadmin"
+    },
+    {
+        "ParameterKey": "DBMultiAZ",
+        "ParameterValue": "true"
+    },
+    {
+        "ParameterKey": "DrupalDbName",
+        "ParameterValue": "drupaldb"
+    },
+    {
+        "ParameterKey": "DrupalDbPassword",
+        "ParameterValue": "$[alfred_genpass_10]"
+    },
+    {
+        "ParameterKey": "DrupalDbUsername",
+        "ParameterValue": "drupal"
+    },
+    {
+        "ParameterKey": "DrupalSiteAdminEmail",
+        "ParameterValue": "foo@example.com"
+    },
+    {
+        "ParameterKey": "DrupalSiteAdminPassword",
+        "ParameterValue": "$[alfred_genpass_10]"
+    },
+    {
+        "ParameterKey": "DrupalSiteAdminUsername",
+        "ParameterValue": "drupaladmin"
+    },
+    {
+        "ParameterKey": "DrupalSiteDomain",
+        "ParameterValue": "localhost.local"
+    },
+    {
+        "ParameterKey": "DrupalSiteName",
+        "ParameterValue": "Drupal Test Site"
+    },
+    {
+        "ParameterKey": "DrupalVersion",
+        "ParameterValue": "7"
+    },
+    {
+        "ParameterKey": "KeyPair",
+        "ParameterValue": "$[alfred_getkeypair]"
+    },
+    {
+        "ParameterKey": "PhpVersion",
+        "ParameterValue": "php71"
+    },
+   {
+        "ParameterKey": "RemoteAccessCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "SSLCertificateId",
+        "ParameterValue": ""
+    },
+    {
+        "ParameterKey": "VPCCIDR",
+        "ParameterValue": "10.0.0.0/16"
+    },
+    {
+        "ParameterKey": "WebServerDesiredCapacity",
+        "ParameterValue": "2"
+    },
+    {
+        "ParameterKey": "WebServerInstanceType",
+        "ParameterValue": "t2.micro"
+    },
+    {
+        "ParameterKey": "WebServerMaxSize",
+        "ParameterValue": "3"
+    },
+    {
+        "ParameterKey": "WebServerMinSize",
+        "ParameterValue": "1"
+    },
+   {
+        "ParameterKey": "CloudFrontEnable",
+        "ParameterValue": "true"
+    },
+   {
+        "ParameterKey": "CloudFrontPriceClass",
+        "ParameterValue": "use-all-edge-locations"
+    },
+   {
+        "ParameterKey": "CloudFrontAlias",
+        "ParameterValue": "cdn.default"
+    },
+   {
+        "ParameterKey": "Route53HostedZoneId",
+        "ParameterValue": ""
+    },
+   {
+        "ParameterKey": "ElastiCacheEnable",
+        "ParameterValue": "true"
+    },
+   {
+        "ParameterKey": "ElastiCacheAutoMinorVersionUpgrade",
+        "ParameterValue": "true"
+    },
+   {
+        "ParameterKey": "ElastiCacheNodeType",
+        "ParameterValue": "cache.t2.micro"
+    },
+   {
+        "ParameterKey": "ElastiCacheNumberOfNodes",
+        "ParameterValue": "2"
+    },
+    {
+        "ParameterKey":"QSS3BucketName",
+        "ParameterValue":"$[taskcat_autobucket]"
+    }
+]
