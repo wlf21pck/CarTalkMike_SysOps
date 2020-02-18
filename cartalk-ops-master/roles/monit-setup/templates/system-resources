@@ -1,0 +1,24 @@
+## Check general system resources
+   check system cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-system
+     if loadavg (1min) > 4 for 10 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     if loadavg (5min) > 2 for 10 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     if memory usage > 95% for 10 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     if swap usage > 25% then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     if cpu usage (user) > 70% for 10 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     if cpu usage (system) > 30% for 10 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     if cpu usage (wait) > 20% for 10 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+     noalert devops@nird.us
+
+
+## Check space usage
+check filesystem cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-fs-soft with path /
+    if space usage > 90% for 4 cycles then exec '{{ monit_prefix }}/etc/monit_slack.sh' else if succeeded then exec '{{ monit_prefix }}/etc/monit_slack.sh'
+    if space usage > 90% then exec '/etc/cron.daily/logrotate'
+    if space usage > 90% for 3 cycles then exec "/bin/find /tmp/ -atime +30 -delete"
+    if space usage > 90% for 3 cycles then exec "/usr/bin/yum clean all"
+    if space usage > 90% for 5 cycles then exec "{{ monit_prefix }}/etc/monit_deleteoldhttpdlogs.sh"
+    noalert devops@nird.us
+
+check filesystem cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-fs with path /
+    if space usage > 90% for 10 cycles then alert
+    alert devops@nird.us with reminder on 1440 cycles # Once every day

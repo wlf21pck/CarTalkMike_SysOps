@@ -1,0 +1,28 @@
+---
+- name: copy common monit checks to server
+  include: tasks/common.yml
+
+- name: copy staging monit checks to server
+  include: tasks/staging.yml
+  when: release_stage == 'staging'
+
+- name: copy production-memcache monit checks to server
+  include: tasks/production-memcache.yml
+  when: release_stage == 'production-memcache'
+
+- name: copy production monit checks to server
+  include: tasks/production.yml
+  when: release_stage == 'production'
+
+- name: copy production-admin monit checks to server
+  include: tasks/production-admin.yml
+  when: release_stage == 'production-admin'
+
+- name: copy scripts to server
+  template: src={{ item }} dest={{ monit_prefix }}/etc/{{ item }} mode="u+x,g+x,o+x"
+  with_items:
+      - monit_slack.sh
+      - monit_deleteoldhttpdlogs.sh
+
+- name: ensure monit is restarted and enabled
+  service: name=monit state=restarted enabled=yes

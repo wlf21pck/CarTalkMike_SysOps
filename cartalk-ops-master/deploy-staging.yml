@@ -1,0 +1,5 @@
+---
+- name: Setup Staging WebServers
+  hosts: tag_Role_staging
+  roles:
+    - { role: www.cartalk.com, release_stage: 'staging', branch_name: "{{ branchname | default('stage') }}" }

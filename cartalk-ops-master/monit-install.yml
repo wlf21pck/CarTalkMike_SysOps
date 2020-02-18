@@ -1,0 +1,13 @@
+---
+- name: Deploy Monit on Staging Hosts
+  hosts: tag_Role_staging
+  roles:
+    - { role: monit-install, release_stage: 'staging' }
+- name: Deploy Monit on Production Hosts
+  hosts: tag_Role_production
+  roles:
+    - { role: monit-install, release_stage: 'production' }
+- name: Deploy Monit on Admin Production Hosts
+  hosts: tag_Role_production_admin
+  roles:
+    - { role: monit-install, release_stage: 'production-admin' }

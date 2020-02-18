@@ -1,0 +1,10 @@
+---
+- name: Setup Production WebServers
+  hosts: tag_Role_production
+  roles:
+    - { role: www.cartalk.com, release_stage: 'production',  branch_name: "{{ branchname | default('master') }}" }
+
+- name: Setup Admin Production WebServers
+  hosts: tag_Role_production_admin
+  roles:
+    - { role: www.cartalk.com, release_stage: 'production', branch_name: "{{ branchname | default('master') }}" }

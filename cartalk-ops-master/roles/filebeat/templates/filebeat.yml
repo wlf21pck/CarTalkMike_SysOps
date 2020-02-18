@@ -1,0 +1,15 @@
+filebeat:
+  prospectors:
+    # Each - is a prospector. Below are the prospector specific configurations
+    -
+      paths:
+        - "/var/log/php_error.log"
+        - "/var/log/php-fpm/*error.log"
+        - "/var/log/httpd/*_log"
+        - "/var/log/httpd/www.cartalk.com/*.log"
+      input_type: log
+      fields:
+        environment: "{{ release_stage }}"
+output:
+  logstash:
+    hosts: ["{{ logstash_host }}:5044"]

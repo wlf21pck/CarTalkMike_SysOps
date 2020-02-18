@@ -1,0 +1,31 @@
+---
+- name: Setup Staging WebServers
+  hosts: tag_Role_staging
+  roles:
+    - common
+    - { role: apache, apache_mpm: "{{ apachempm | default('event') }}" }
+    - apache-php
+    - { role: filebeat, logstash_host: 'logstash.cartalk.com', release_stage: 'staging' }
+    - { role: monit-install, release_stage: 'staging' }
+    - { role: monit-setup, release_stage: 'staging' }
+
+- name: Setup Production WebServers
+  hosts: tag_Role_production
+  roles:
+    - common
+    - { role: apache, apache_mpm: "{{ apachempm | default('event') }}" }
+    - apache-php
+    - { role: filebeat, logstash_host: 'logstash.cartalk.com', release_stage: 'production' }
+    - { role: monit-install, release_stage: 'production' }
+    - { role: monit-setup, release_stage: 'production' }
+
+- name: Setup Admin Production WebServers
+  hosts: tag_Role_production_admin
+  roles:
+    - common
+    - { role: apache, apache_mpm: "{{ apachempm | default('event') }}" }
+    - apache-php
+    - admin
+    - { role: filebeat, logstash_host: 'logstash.cartalk.com', release_stage: 'production-admin' }
+    - { role: monit-install, release_stage: 'production-admin' }
+    - { role: monit-setup, release_stage: 'production-admin' }

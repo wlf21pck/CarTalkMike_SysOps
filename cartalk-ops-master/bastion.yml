@@ -1,0 +1,6 @@
+- hosts: tag_Name_bastion
+  remote_user: ubuntu # Bastion host is Ubuntu, while the rest is AWS Linux (barbershop)
+  become: yes
+  roles:
+    - bastion
+    - ssh

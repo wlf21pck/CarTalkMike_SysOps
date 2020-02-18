@@ -1,0 +1,19 @@
+- include_vars: encrypted.yml
+
+- name: Create 'barbershop' user and home
+  user:
+    name: barbershop
+    createhome: yes
+    state: present
+
+- name: Drop cartalk.pem ssh key in 'barbershop' home directory
+  copy:
+    content: "{{ ssh_key }}"
+    dest: /home/barbershop/cartalk.pem
+    mode: 0600
+    owner: barbershop
+
+- name: Drop cartalk.pub ssh key in 'barbershop' home directory
+  copy:
+    src: cartalk.pub
+    dest: /home/barbershop/cartalk.pub

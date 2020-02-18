@@ -1,0 +1,9 @@
+---
+- name: install php APC caching system
+  package: name={{ item }} state=present
+  with_items:
+    - php54-pecl-apc
+    - php54-pecl-apc-devel
+
+- name: set APC cache memory limit
+  lineinfile: dest=/etc/php.d/apc.ini regexp=^apc.shm_size= line=apc.shm_size="{{ apc_mem_mb }}M"

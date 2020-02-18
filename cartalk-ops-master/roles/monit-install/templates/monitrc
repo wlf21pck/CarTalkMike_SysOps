@@ -1,0 +1,45 @@
+###############################################################################
+## Monit control file
+###############################################################################
+
+## Start Monit in the background (run as a daemon):
+  set daemon 60             # check services at 1-minute intervals
+
+## Set syslog logging with the 'daemon' facility.
+  set logfile /var/log/monit.log
+
+## Set the location of the Monit
+  set pidfile /var/run/monit.pid
+
+## Set the location of the Monit id
+  set idfile /var/.monit.id
+
+## Set the location of the Monit state file
+  set statefile /var/lib/monit/state
+
+## Eventqueue location if mmonit isn't available
+  set eventqueue
+      basedir /var/lib/monit/events # set the base directory where events will be stored
+      slots 100                     # optionally limit the queue size
+
+## Send status and events to M/Monit
+  set mmonit http://monit:monit@107.170.212.199/collector
+  and register without credentials
+
+## Send alert to devops@nird.us
+  set mailserver smtp.gmail.com port 587
+    username "nird.devops@gmail.com" password "{{ vaulted_gmail_passwd }}"
+    using tlsv12
+    with timeout 30 seconds
+
+  set mail-format { from: nird.devops@gmail.com }
+  set alert devops@nird.us but not on { pid, ppid, instance }
+
+## Turn on web interface for prettiness
+  set httpd port 2812 and
+   use address {{ ansible_all_ipv4_addresses[0] }}  # use the IP of the machine
+   allow 0.0.0.0/0.0.0.0        # allow all connections
+   allow nird:'{{ vaulted_regular_passwd }}'       # require user and password
+
+## Include these files
+   include {{ monit_prefix }}/etc/monit.d/*

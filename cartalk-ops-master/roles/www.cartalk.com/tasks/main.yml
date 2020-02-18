@@ -1,0 +1,119 @@
+---
+- include_vars: git_credentials.yml
+- include_vars: database_credentials.yml
+- include_vars: s3_credentials.yml
+
+- name: "slack: deploy started"
+  run_once: true
+  slack:
+    token: "{{ lookup('env', 'SLACK_TOKEN') }}"
+    channel: "tech"
+    msg: "Deploy of www-cartalk-com {{ branch_name }} HEAD to environment {{ release_stage }} started on {{ hostvars[inventory_hostname].ec2_tag_Name }}"
+
+- name: create /www and /var/log folders
+  file: path={{ item }} state=directory owner=root group=root mode=0755
+  with_items:
+    - /www/backups
+    - /www/docs
+    - /www/home
+    - /var/log/httpd/www.cartalk.com
+    - /var/log/httpd/cars.cartalk.com
+
+- name: install rsync
+  package: name=rsync state=present
+
+- name: install cronolog from Fedora repository
+  yum: name=http://dl.fedoraproject.org/pub/epel/6/x86_64/Packages/c/cronolog-1.6.2-10.el6.x86_64.rpm state=present
+
+- name: apply stage.cartalk.com specific apache's configuration
+  copy: dest=/tmp/httpd.conf.d.tar.xz src=staging_httpd.conf.d.tar.xz
+  when: release_stage == 'staging'
+
+- name: apply www.cartalk.com specific apache's configuration
+  copy: dest=/tmp/httpd.conf.d.tar.xz src=production_httpd.conf.d.tar.xz
+  when: release_stage == 'production'
+
+- shell: cd $(mktemp -d) && tar xf /tmp/httpd.conf.d.tar.xz && rsync -r conf.d/ /etc/httpd/conf.d/
+
+- name: ensure Apache's DocumentRoots exist
+  file: path={{ item }} state=directory owner=apache group=apache mode="u=rwx,g=rwxs,o=rx"
+  with_items:
+    - /www/docs/cartalk.git/www-cartalk-com
+
+- name: ensure Apache's DocumentRoot points to git repo
+  file: path=/www/docs/www.cartalk.com state=link src=cartalk.git/www-cartalk-com force=yes
+
+- name: create healthcheck file
+  copy: dest=/www/docs/DONOTREMOVE.php content='<?php echo "Version ".phpversion(); ?>' owner=root group=root mode=0644
+
+- name: check if Drush is installed
+  stat: path=/usr/local/drush
+  register: drush_dir
+
+- name: install Drush
+  include: tasks/drush.yml
+  when: drush_dir.stat.exists == False or drush_dir.stat.isdir == False
+
+- name: install git
+  package: name=git state=present
+
+- name: upload private git deploy key
+  copy: dest=/root/.ssh/deploy_key content={{ git_key }} owner=root group=root mode=0600 
+
+- name: wait a bit to make sure all requests are flushed
+  pause: seconds=15
+
+- name: deploy www.cartalk.com codebase
+  git:
+    repo: git@github.com:cartalk/www-cartalk-com.git
+    dest: /www/docs/cartalk.git/www-cartalk-com
+    key_file: /root/.ssh/deploy_key
+    accept_hostkey: yes
+    version: "{{ branch_name }}"
+    update: yes
+    force: yes # discard local modifications
+
+- name: apply mode 0750 to sites/default
+  file: path=/www/docs/www.cartalk.com/sites/default/ mode=0750
+
+- name: check if /www/docs/www.cartalk.com/sites/default/files exists
+  stat: path=/www/docs/www.cartalk.com/sites/default/files
+  register: cartalk_files
+
+- name: Upload s3curl.pl script to fetch DocRoot files
+  copy: dest=/tmp/s3curl.pl src=s3curl.pl mode=0755
+  when: cartalk_files.stat.exists == False
+
+- name: Fetch docroot-LATEST.tar.xz from S3 and extract sites/default/files in place
+  shell: >
+      cd $(mktemp -d) && 
+      /tmp/s3curl.pl --id "{{ s3_id }}" --key "{{ s3_key }}" https://s3-us-west-2.amazonaws.com/ombu-awscartalk-backup/docroot/docroot-LATEST.tar.xz 2>/dev/null >docroot-LATEST.tar.xz &&
+      tar xf docroot-LATEST.tar.xz -C /www/docs/www.cartalk.com/ --strip-components=4 www/docs/cartalk.git/www-cartalk-com/sites/default/files
+  when: cartalk_files.stat.exists == False
+
+- name: Apply staging Drupal Site settings
+  template: dest=/www/docs/www.cartalk.com/sites/default/settings.php src=stage.settings.php owner=root group=apache mode=0440
+  when: release_stage == 'staging'
+
+- name: Apply production Drupal Site settings
+  template: dest=/www/docs/www.cartalk.com/sites/default/settings.php src=prod.settings.php owner=root group=apache mode=0440
+  when: release_stage == 'production'
+
+- name: Make sure /www/docs/www.cartalk.com/sites/default/private_files exists
+  file: path=/www/docs/www.cartalk.com/sites/default/private_files state=directory owner=apache
+
+- name: restart Apache
+  service: name=httpd state=restarted
+
+- name: restart PHP-FPM
+  service: name=php-fpm state=restarted
+
+- name: clear cache
+  shell: drush cache-clear all || true
+
+- name: "slack: deploy finished"
+  run_once: true
+  slack:
+    token: "{{ lookup('env', 'SLACK_TOKEN') }}"
+    channel: "tech"
+    msg: "Deploy finished and cache cleared for {{ release_stage }}"

@@ -1,0 +1,41 @@
+---
+- include_vars: encrypted.yml
+- include_vars: s3cmd_credentials.yml
+
+- name: create admin script directories
+  file: path={{ item }} state=directory owner=root group=root mode=0755
+  with_items:
+    - /www/docs/bin
+    - /www/backups/scripts-sync
+
+- name: copy admin sync scripts
+  template: dest=/www/docs/bin/{{ item }} src={{ item }} owner=root group=root mode=0750
+  with_items:
+    - auto-sync-docroot.sh
+    - auto-sync-vhosts.sh
+
+- name: copy backup scripts
+  copy: dest=/www/backups/scripts-sync/{{ item }} src=backup_scripts/{{ item }} owner=root group=root mode=0750
+  with_items:
+    - docroot-backup.sh
+    - file-backup.sh
+    - gfs-rotate
+    - run-backups.sh
+
+- name: copy MySQL staggered backup script
+  template: dest=/www/backups/scripts-sync/mysql-backup.sh src=mysql-backup.sh owner=root group=root mode=0700
+
+- name: Make sure s3cmd is installed
+  shell: yum --enablerepo epel -y install s3cmd
+
+- name: create /root/.s3cfg configuration file
+  template: dest=/root/.s3cfg src=s3cfg mode=600
+
+- name: create the root crontab
+  copy: dest=/var/spool/cron/root src=root_crontab owner=root group=root mode=0600
+
+- name: drop id_rsa private key for root to allow scripts to connect around
+  copy: dest=/root/.ssh/id_rsa content="{{ ssh_key }}" owner=root mode=0600
+
+- name: reload crond
+  service: name=crond state=reloaded enabled=yes

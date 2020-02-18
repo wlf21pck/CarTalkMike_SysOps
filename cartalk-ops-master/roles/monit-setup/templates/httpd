@@ -1,0 +1,10 @@
+check process cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-httpd-soft with pidfile /var/run/httpd/httpd.pid
+  if failed port 80 then exec {{ monit_prefix }}/etc/monit_slack.sh else if succeeded then exec {{ monit_prefix }}/etc/monit_slack.sh
+  if cpu is greater than 40% for 2 cycles then exec {{ monit_prefix }}/etc/monit_slack.sh else if succeeded then exec {{ monit_prefix }}/etc/monit_slack.sh
+  noalert devops@nird.us
+
+check process cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-httpd with pidfile /var/run/httpd/httpd.pid
+  start program = "/sbin/service httpd start"
+  stop  program = "/sbin/service httpd stop"
+  if failed port 80 for 5 cycles then restart
+  if cpu > 60% for 5 cycles then restart

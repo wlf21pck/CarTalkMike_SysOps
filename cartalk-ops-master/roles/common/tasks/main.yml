@@ -1,0 +1,17 @@
+---
+- name: Add admin script pubkey as authorized under root user
+  authorized_key: user=root key="{{ item }}" state=present
+  with_file:
+    - id_rsa.pub
+
+- name: Ensure root login is allowed via SSH
+  lineinfile: dest=/etc/ssh/sshd_config line="PermitRootLogin yes" regexp="^PermitRootLogin.+" state=present
+
+- name: Restart SSH
+  service: name=sshd state=restarted
+
+- name: Make sure mysql client tools are installed
+  package: name=mysql state=present
+
+- name: Make sure s3cmd is installed
+  shell: yum --enablerepo epel -y install s3cmd

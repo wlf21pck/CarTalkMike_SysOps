@@ -1,0 +1,17 @@
+---
+- name: install apache
+  yum: name=httpd24 state=present
+
+- lineinfile: dest=/etc/sysconfig/httpd regexp=HTTPD= line=HTTPD=/usr/sbin/httpd
+
+- name: activate apache's prefork MPM
+  lineinfile: dest=/etc/httpd/conf.modules.d/00-mpm.conf regexp=^LoadModule line="LoadModule mpm_prefork_module modules/mod_mpm_prefork.so"
+  when: apache_mpm == 'prefork'
+
+- name: activate apache's worker MPM
+  lineinfile: dest=/etc/httpd/conf.modules.d/00-mpm.conf regexp=^LoadModule line="LoadModule mpm_worker_module modules/mod_mpm_worker.so"
+  when: apache_mpm == 'worker'
+
+- name: activate apache's event MPM
+  lineinfile: dest=/etc/httpd/conf.modules.d/00-mpm.conf regexp=^LoadModule line="LoadModule mpm_event_module modules/mod_mpm_event.so"
+  when: apache_mpm == 'event'

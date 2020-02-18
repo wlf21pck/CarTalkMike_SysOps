@@ -1,0 +1,48 @@
+---
+- include_vars: encrypted.yml
+
+- name: Ensure docker is not installed from distro's repos
+  package: name=docker.io state=absent
+
+- name: Ensure curl and wget are installed
+  package: name={{ item }} state=present
+  with_items:
+    - curl
+    - wget
+
+- name: Install docker from get.docker.com
+  shell: which docker || (wget -qO- https://get.docker.com/ | sh)
+
+- name: Install docker-compose
+  shell: curl -L https://github.com/docker/compose/releases/download/1.8.0/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
+
+- name: Copy elk.yml docker composer
+  copy: src=elk.yml dest=/root/elk.yml mode=0600
+
+- name: Create nginx Docker image build directory
+  file: path=/root/{{ item }} state=directory
+  with_items:
+    - nginx
+    - nginx/ssl
+
+- name: Copy nginx Docker image Dockerfile and files
+  copy: src=nginx/{{ item }} dest=/root/nginx/{{ item }} mode=0600
+  with_items:
+    - Dockerfile
+    - nginx.conf
+    - kibana.htpasswd
+    - ssl/kibana.cartalk.com.crt 
+
+- name: Copy SSL certificate privkey for nginx Docker image
+  copy: content="{{ kibana_cartalk_cert_key }}" dest=/root/nginx/ssl/kibana.cartalk.com.key  mode=0600
+
+- name: Make sure the containers are started upon boot, simple rc.local
+  lineinfile: dest=/etc/rc.local state=present line="/usr/local/bin/docker-compose -f /root/elk.yml up -d --build"
+
+- name: Ensure vm.max_map_count is high enough in kernel
+  lineinfile: dest=/etc/sysctl.conf line="vm.max_map_count=262144" state=present
+
+- command: sysctl -w vm.max_map_count=262144
+
+- name: Start containers
+  command: /usr/local/bin/docker-compose -f /root/elk.yml up -d --build

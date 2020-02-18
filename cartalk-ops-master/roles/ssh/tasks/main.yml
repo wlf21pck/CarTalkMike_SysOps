@@ -1,0 +1,8 @@
+---
+- name: Set up authorized_keys for barbershop (sudo privileges) user
+  authorized_key:
+    user: barbershop
+    key: "{{ lookup('file', item) }}"
+    state: present
+  with_fileglob:
+    - authorized_keys/*

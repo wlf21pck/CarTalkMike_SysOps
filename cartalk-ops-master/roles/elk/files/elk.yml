@@ -1,0 +1,31 @@
+---
+version: '2'
+services:
+  logstash:
+    image: logstash
+    depends_on:
+      - elasticsearch
+    command: -e 'input { beats { port => 5044 } } output { elasticsearch { hosts => ["elasticsearch"] } }'
+    ports:
+      - "5044:5044"
+  elasticsearch:
+    image: elasticsearch
+    volumes:
+      - elasticsearch_indices:/usr/share/elasticsearch/data
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+  kibana:
+    image: kibana
+    depends_on:
+      - elasticsearch
+  nginx:
+    build: nginx
+    depends_on:
+      - kibana
+    ports:
+      - "80:80"
+      - "443:443"
+volumes:
+  elasticsearch_indices:

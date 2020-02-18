@@ -1,0 +1,27 @@
+# Cloudwatch monitoring
+*/5 * * * * nice /root/aws-scripts-mon/mon-put-instance-data.pl --aws-credential-file=/root/aws-scripts-mon/awscreds.conf --mem-util --swap-util --disk-space-util --disk-path=/ --from-cron
+#
+# Docroot Sync
+*/10 * * * * /www/docs/bin/auto-sync-docroot.sh
+#
+# Vhost config sync
+#*/5 * * * * /www/docs/bin/auto-sync-vhosts.sh
+#
+# log compress
+33 08 * * * /root/scripts/cron-logfile-compress.sh >> /var/log/httpd/cron-logfile-compress.log 2>&1
+#
+# S3 backup
+#
+01 07 * * * nice /www/backups/scripts-sync/run-backups.sh >/dev/null 2>&1
+#
+# S3 Mount Check
+#
+#30 * * * * /root/scripts/mountcheck.sh
+#
+# cartalk job (roman request)
+*/5 * * * * /usr/bin/wget -q -O /dev/null http://admin-www.cartalk.com/scheduler.php?cron_key=VOHiRc14FfBGky0tEeG1xbeAW7Bwsxxj4CnaoMKy5d4
+#
+0 */3 * * * /usr/bin/wget -q -O /dev/null http://admin-www.cartalk.com/rss_blogs.php?cron_key=VOHiRc14FfBGky0tEeG1xbeAW7Bwsxxj4CnaoMKy5d4
+# */15 * * * * /usr/bin/wget -q -O /dev/null http://admin-www.cartalk.com/mycartalk.php?cron_key=VOHiRc14FfBGky0tEeG1xbeAW7Bwsxxj4CnaoMKy5d4
+# 0 07 * * * /usr/bin/wget -q -O /dev/null http://admin-www.cartalk.com/mycartalk.php?cron_key=VOHiRc14FfBGky0tEeG1xbeAW7Bwsxxj4CnaoMKy5d4
+*/15 * * * * /usr/bin/wget -q -O /dev/null http://admin-www.cartalk.com/cron.php?cron_key=VOHiRc14FfBGky0tEeG1xbeAW7Bwsxxj4CnaoMKy5d4

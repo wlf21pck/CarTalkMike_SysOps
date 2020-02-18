@@ -1,0 +1,18 @@
+---
+- name: fetch and unpack Drush in /usr/local/
+  shell: cd $(mktemp -d) && wget https://ftp.drupal.org/files/projects/drush-7.x-5.9.tar.gz && tar xf drush-7.x-5.9.tar.gz -C /usr/local/
+
+- name: make drush executable
+  file: path=/usr/local/drush/drush mode=0755
+
+- name: create drush symlink into a PATH location
+  file: path=/usr/bin/drush state=link src=/usr/local/drush/drush
+
+- name: copy configuration file to specify Drupal root folder
+  copy: dest=/usr/local/drush/drushrc.php content="<?php $options['r'] = '/www/docs/www.cartalk.com'; ?>"
+
+- name: make sure ec2-user is in apache group for Drush to read setting.php
+  user: name=ec2-user groups=apache append=yes
+
+- name: execute drush as root to resolve dependencies
+  shell: drush

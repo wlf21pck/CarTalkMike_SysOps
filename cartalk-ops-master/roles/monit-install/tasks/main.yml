@@ -1,0 +1,44 @@
+---
+- include_vars: vaulted_passwd.yml
+
+- name: delete standard /etc/monit* locations to avoid confusion
+  file: path={{ item }} state=absent
+  with_items:
+    - /etc/monit.conf
+    - /etc/monitrc
+    - /etc/monit.d
+
+- name: ensure monit is not installed from the distro repositories
+  yum: name=monit state=absent
+
+- name: install dependencies
+  yum: name={{ item }} state=present
+  with_items:
+    - tar
+    - wget
+    - curl
+
+- name: ensure {{ monit_prefix }}/etc/monit.d exists
+  file: path={{ monit_prefix }}/etc/monit.d state=directory
+
+- name: ensure /var/lib/monit/events exists
+  file: path=/var/lib/monit/events state=directory
+
+- name: copy monitrc config to server
+  template: src=monitrc dest={{ monit_prefix }}/etc/monitrc mode=0600
+  
+- name: copy monit service file to server
+  template: src=monit_service.sh dest=/etc/init.d/monit mode="u+x,g+x,o+x"
+
+- name: copy monit downloader script
+  template: src=monit_downloader.sh dest=/tmp/monit_downloader.sh mode="u+x,g+x,o+x"
+
+- name: install monit via downloader script
+  command: /tmp/monit_downloader.sh
+
+# Since we changed a systemd unit, daemon must be reloaded
+- name: reload systemd
+  shell: if [ -x /bin/systemctl ]; then /bin/systemctl --system daemon-reload; fi
+
+- name: ensure monit is restarted and enabled
+  service: name=monit state=restarted enabled=yes

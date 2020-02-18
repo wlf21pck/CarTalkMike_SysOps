@@ -1,0 +1,10 @@
+check process cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-memcache-soft with pidfile /var/run/memcached/memcached.pid
+  if failed port 11211 then exec {{ monit_prefix }}/etc/monit_slack.sh else if succeeded then exec {{ monit_prefix }}/etc/monit_slack.sh
+  if cpu is greater than 40% for 2 cycles then exec {{ monit_prefix }}/etc/monit_slack.sh else if succeeded then exec {{ monit_prefix }}/etc/monit_slack.sh
+  noalert devops@nird.us
+
+check process cartalk-{{ release_stage }}-{{ ansible_all_ipv4_addresses[0] }}-memcache with pidfile /var/run/memcached/memcached.pid
+  start program = "/sbin/service memcached start"
+  stop  program = "/sbin/service memcached stop"
+  if failed port 11211 for 5 cycles then restart
+  if cpu > 60% for 5 cycles then restart

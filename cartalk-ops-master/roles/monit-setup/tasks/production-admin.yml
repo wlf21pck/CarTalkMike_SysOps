@@ -1,0 +1,4 @@
+---
+- template: src={{ item }} dest={{ monit_prefix}}/etc/monit.d/{{ item }}
+  with_items:
+  - httpd

@@ -1,0 +1,215 @@
+#!/usr/bin/perl
+#
+# gfs-rotate
+#
+# rotate a file daily using a grandfather-father-son
+# backup method, keeping by default:
+#  14 sons (two weeks, daily)
+#  8 fathers (two months, weekly)
+#  24 grandfathers (two years, monthly)
+#
+# Initial shell script
+# ATonns Wed Nov 15 16:04:18 EST 2006
+#
+# Ported to perl with cmdline options
+# ATonns Thu Feb 15 10:24:53 EST 2007
+#
+# $Id: gfs-rotate,v 1.4 2007/02/16 17:56:28 root Exp root $
+#
+
+use strict;
+use Getopt::Long;
+use Date::Manip;
+use File::Basename;
+use File::Copy;
+
+my $PROGNAME = "gfs-rotate";
+my $version = '$Revision: 1.4 $';
+
+my $debug = 0;
+sub DEBUG { $debug; }
+
+sub print_usage {
+        my ($msg) = @_;
+        if ( $msg ) { print STDOUT "$msg\n\n"; }
+        print_revision($PROGNAME,$version);
+        print STDOUT "Usage: $PROGNAME [-m num_monthly -w num_weekly -d num_daily] filename[,file,file,file] \n";
+        print STDOUT "Usage: $PROGNAME [--months=num_monthly --weeks=num_weekly --days=num_daily] filename[,file,file,file] \n";
+        print STDOUT "       ".' ' x length($PROGNAME) .  " [-v|--verbose -V|--version -h|--help]\n";
+        print STDOUT "       ".' ' x length($PROGNAME) .  " defaults: 24 monthlies, 8 weeklies, 14 dailyies\n";
+        exit(-1);
+}
+
+sub print_revision ($$) {
+        my $commandName = shift;
+        my $pluginRevision = shift;
+        $pluginRevision =~ s/^\$Revision: //;
+        $pluginRevision =~ s/ \$\s*$//;
+        print STDOUT "$commandName $pluginRevision\n";
+}
+
+my ($opt_V,$opt_h,$opt_v,$opt_m,$opt_w,$opt_d,$opt_D);
+Getopt::Long::Configure('bundling');
+GetOptions(
+        "V"   => \$opt_V, "version"  => \$opt_V,
+        "h"   => \$opt_h, "help"     => \$opt_h,
+        "v+"  => \$opt_v, "verbose+" => \$opt_v,
+        "m:i" => \$opt_m, "months:i" => \$opt_m,
+        "w:i" => \$opt_w, "weeks:i"  => \$opt_w,
+        "d:i" => \$opt_d, "days:i"   => \$opt_d,
+        "D:s" => \$opt_D, "date:s"   => \$opt_D,
+);
+
+#
+# give help
+#
+if ( $opt_h )
+        { print_usage(""); }
+if ( $opt_V )
+        { print_revision($PROGNAME,$version); exit(0); }
+
+#
+# bail out if no files
+#
+my $num_files = $#ARGV + 1;
+print STDERR "DEBUG: num files is $num_files \n" if DEBUG;
+if ( $#ARGV < 0 )
+        { print_usage(""); }
+
+#
+# parse args
+#
+if ( $opt_v )
+        { $debug = 1; }
+#
+my $total_monthly = $opt_m ? $opt_m : 24;
+print STDERR "DEBUG: total_monthly is $total_monthly\n" if DEBUG;
+my $m_digits = length($total_monthly);
+#
+my $total_weekly  = $opt_w ? $opt_w :  8;
+print STDERR "DEBUG: total_weekly  is $total_weekly\n"  if DEBUG;
+my $w_digits = length($total_weekly);
+#
+my $total_daily   = $opt_d ? $opt_d : 14;
+print STDERR "DEBUG: total_daily   is $total_daily\n"   if DEBUG;
+my $d_digits = length($total_daily);
+
+#
+# get date to work with
+#
+my $date = ParseDate("today");
+#
+# the super-secret date option (used for testing):
+# acts like it's running on some day in the past 
+#
+if ( $opt_D ) {
+	$date  = ParseDate($opt_D);
+	if ( ! $date ) {
+		print STDERR "$PROGNAME: ERROR: cannot parse date '$opt_D'\n";
+		exit(-1);
+	}
+	print STDERR "DEBUG: using date arg $opt_D\n" if DEBUG;
+} 
+print STDERR "DEBUG: date $date\n" if DEBUG;
+
+# date calculations
+my $dom  = UnixDate($date,"%d");
+print STDERR "DEBUG: dom $dom\n" if DEBUG;
+my $dow  = UnixDate($date,"%w");
+print STDERR "DEBUG: dow $dow\n" if DEBUG;
+
+#
+# rotate each file
+#
+FILE: foreach my $file (@ARGV) {
+	print "DEBUG: processing file $file\n" if DEBUG;
+	if ( ! -f $file ) {
+		print STDERR "$PROGNAME: ERROR: file '$file' not found\n";
+		next FILE;
+	}
+	# keep all the timestamps, etc. for post-copy
+	my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+		$atime,$mtime,$ctime,$blksize,$blocks) = stat(_);
+	# break-off the path
+	my $dirname = dirname($file);
+	my $basename = basename($file);
+
+	# do the monthly rotate
+	if ( $dow == 7 && $dom <= 7 && $total_monthly > 0 ) {
+		my $prev = $total_monthly - 1;
+		my $curr = $prev - 1;
+		while ( $curr >= 0 ) {
+			my $curr_monthly_file = sprintf("$dirname/MONTHLY-%0${m_digits}d-$basename",$curr);
+			my $prev_monthly_file = sprintf("$dirname/MONTHLY-%0${m_digits}d-$basename",$prev);
+			if ( -f $curr_monthly_file ) {
+				move($curr_monthly_file,$prev_monthly_file)
+				  or print STDERR "$PROGNAME: ERROR: could not move '$curr_monthly_file' to '$prev_monthly_file'\n";
+				print STDERR "DEBUG: move $curr_monthly_file -> $prev_monthly_file\n" if DEBUG;
+			}
+			$prev = $curr;
+			$curr = $curr - 1;
+		}
+		my $prev_monthly_file = sprintf("$dirname/MONTHLY-%0${m_digits}d-$basename",$prev);
+		copy($file,$prev_monthly_file)
+		  or print STDERR "$PROGNAME: ERROR: could not copy '$file' to '$prev_monthly_file'\n";
+		resetfileattributes($prev_monthly_file,$mode,$uid,$gid,$atime,$mtime);
+		print STDERR "DEBUG: copy $file -> $prev_monthly_file\n" if DEBUG;
+	}
+
+	# do the weekly rotate
+	if ( $dow == 7 && $total_weekly > 0 ) {
+		my $prev = $total_weekly - 1;
+		my $curr = $prev - 1;
+		while ( $curr >= 0 ) {
+			my $curr_weekly_file = sprintf("$dirname/WEEKLY-%0${w_digits}d-$basename",$curr);
+			my $prev_weekly_file = sprintf("$dirname/WEEKLY-%0${w_digits}d-$basename",$prev);
+			if ( -f $curr_weekly_file ) {
+				move($curr_weekly_file,$prev_weekly_file)
+				  or print STDERR "$PROGNAME: ERROR: could not move '$curr_weekly_file' to '$prev_weekly_file'\n";
+				print STDERR "DEBUG: move $curr_weekly_file -> $prev_weekly_file\n" if DEBUG;
+			}
+			$prev = $curr;
+			$curr = $curr - 1;
+		}
+		my $prev_weekly_file = sprintf("$dirname/WEEKLY-%0${w_digits}d-$basename",$prev);
+		copy($file,$prev_weekly_file)
+		  or print STDERR "$PROGNAME: ERROR: could not copy '$file' to '$prev_weekly_file'\n";
+		resetfileattributes($prev_weekly_file,$mode,$uid,$gid,$atime,$mtime);
+		print STDERR "DEBUG: copy $file -> $prev_weekly_file\n" if DEBUG;
+	}
+
+	# do the daily rotate
+	if ( $total_daily > 0 ) {
+		my $prev = $total_daily - 1;
+		my $curr = $prev - 1;
+		while ( $curr >= 0 ) {
+			my $curr_daily_file = sprintf("$dirname/DAILY-%0${d_digits}d-$basename",$curr);
+			my $prev_daily_file = sprintf("$dirname/DAILY-%0${d_digits}d-$basename",$prev);
+			if ( -f $curr_daily_file ) {
+				move($curr_daily_file,$prev_daily_file)
+				  or print STDERR "$PROGNAME: ERROR: could not move '$curr_daily_file' to '$prev_daily_file'\n";
+				print STDERR "DEBUG: move $curr_daily_file -> $prev_daily_file\n" if DEBUG;
+			}
+			$prev = $curr;
+			$curr = $curr - 1;
+		}
+		my $prev_daily_file = sprintf("$dirname/DAILY-%0${d_digits}d-$basename",$prev);
+		move($file,$prev_daily_file)
+		  or print STDERR "$PROGNAME: ERROR: could not move '$file' to '$prev_daily_file'\n";
+		print STDERR "DEBUG: move $file -> $prev_daily_file\n" if DEBUG;
+	}
+
+	print STDERR "DEBUG: unlink $file\n" if DEBUG;
+	unlink($file);
+
+}
+
+#
+# function to preserve timestamps on copied files
+#
+sub resetfileattributes {
+	my($file,$mode,$uid,$gid,$atime,$mtime) = @_;
+	chmod($mode,$file);
+	chown($uid,$gid,$file);
+	utime($atime,$mtime,$file);
+}

@@ -1,0 +1,21 @@
+---
+- name: install php and php-fpm
+  package: name=php54 state=present
+
+- package: name=php54-fpm state=present
+
+- package: name=mod24_fcgid state=present
+
+- name: Ensure php-fpm service is started and enabled
+  service: name=php-fpm state=started enabled=yes
+
+- name: ensure PHP errors are logged
+  lineinfile: dest=/etc/php.ini line="log_errors = On" state=present
+
+- lineinfile: dest=/etc/php.ini line="error_log = /var/log/php_error.log" state=present
+
+- lineinfile: dest=/etc/php.ini regexp=^short_open_tag line="short_open_tag = On" state=present
+
+- name: install php basic extensions
+  package: name={{ item }} state=present
+  with_items: [ php54-mysql, php54-devel, php54-gd, php54-mcrypt, php54-pecl-memcache, php54-pspell, php54-snmp, php54-xmlrpc, php54-xml, php54-mbstring, php54-pdo ]
